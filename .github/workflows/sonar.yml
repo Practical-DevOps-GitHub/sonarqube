@@ -1,39 +1,39 @@
-name: Sonar
+name: SonarCloud Analysis
+
 on:
-  workflow_dispatch:
   push:
     branches:
-      - main # the name of your main branch
+      - main  # or the name of your default branch
   pull_request:
     types: [opened, synchronize, reopened]
+
 jobs:
-  build:
-    name: Analysis
+  sonarcloud:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: Set up JDK 17
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 11
         uses: actions/setup-java@v2
         with:
-          distribution: 'temurin'
-          java-version: '17'
-      - name: Cache SonarQube packages
-        uses: actions/cache@v1
+          java-version: 11
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v2
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-      - name: Cache Maven packages
-        uses: actions/cache@v1
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v2
         with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-      - name: Build and analyze
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle
+          restore-keys: ${{ runner.os }}-gradle
+
+      - name: Build and analyze with Gradle
+        run: ./gradlew build sonarqube
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: mvn -B verify sonar:sonar -Dmaven.test.failure.ignore=true
